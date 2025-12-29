@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gem Trade Bot Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        body {
+            background-color: #0f172a;
+            color: white;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+    <div class="max-w-2xl mx-auto">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
+                Gem Trade Bot v1.0
+            </h1>
+            <div id="status" class="px-3 py-1 rounded-full text-xs bg-red-500/20 text-red-400 border border-red-500/50">
+                Bağlı Değil
+            </div>
+        </div>
+
+        <!-- Wallet Setup -->
+        <div class="glass rounded-2xl p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-cyan-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                Cüzdan Yapılandırması
+            </h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Özel Anahtar (Private Key)</label>
+                    <input type="password" id="privateKey" placeholder="0x..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-500 transition-all">
+                </div>
+                <button onclick="connectWallet()" id="connectBtn" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-xl transition-all">
+                    Cüzdanı Bağla
+                </button>
+            </div>
+        </div>
+
+        <!-- Trade Panel -->
+        <div id="tradePanel" class="glass rounded-2xl p-6 opacity-50 pointer-events-none transition-all">
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd" />
+                </svg>
+                İşlem Paneli
+            </h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Hedef Token Kontratı (Gem Coin)</label>
+                    <input type="text" id="tokenAddress" onchange="updateTokenInfo()" placeholder="0x..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 focus:outline-none focus:border-green-500">
+                    <div id="tokenInfo" class="mt-2 text-xs text-slate-500"></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Alım Miktarı (ETH)</label>
+                        <input type="number" id="buyAmount" value="0.01" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Kayma (Slippage %)</label>
+                        <input type="number" id="slippage" value="5" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 pt-4">
+                    <button onclick="executeTrade('BUY')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-emerald-900/20">
+                        SATIN AL
+                    </button>
+                    <button onclick="executeTrade('SELL')" class="bg-rose-600 hover:bg-rose-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-rose-900/20">
+                        TÜMÜNÜ SAT
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="mt-6">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">İşlem Kayıtları</span>
+                <button onclick="document.getElementById('logs').innerHTML = ''" class="text-xs text-slate-400 hover:text-white">Temizle</button>
+            </div>
+            <div id="logs" class="bg-black/40 rounded-xl p-4 h-48 overflow-y-auto font-mono text-xs space-y-2 border border-slate-800">
+                <div class="text-slate-500">> Sistem başlatıldı. Cüzdan bekleniyor...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let wallet, provider, router;
+        const ROUTER_ADDRESS = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
+        const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+
+        const ROUTER_ABI = [
+            "function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)",
+            "function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)",
+            "function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts)"
+        ];
+
+        const ERC20_ABI = [
+            "function name() view returns (string)",
+            "function symbol() view returns (string)",
+            "function balanceOf(address) view returns (uint256)",
+            "function approve(address, uint256) returns (bool)"
+        ];
+
+        function log(msg, type = 'info') {
+            const logs = document.getElementById('logs');
+            const div = document.createElement('div');
+            const color = type === 'error' ? 'text-rose-400' : type === 'success' ? 'text-emerald-400' : 'text-slate-300';
+            div.className = color;
+            div.innerText = `> ${new Date().toLocaleTimeString()}: ${msg}`;
+            logs.prepend(div);
+        }
+
+        async function connectWallet() {
+            const key = document.getElementById('privateKey').value;
+            if(!key) return log("Lütfen private key girin!", "error");
+
+            try {
+                // Not: Mainnet RPC kullanıyoruz. Gerçek işlemler için Infura/Alchemy key gerekebilir.
+                provider = new ethers.providers.JsonRpcProvider("https://eth.llamarpc.com");
+                wallet = new ethers.Wallet(key, provider);
+                router = new ethers.Contract(ROUTER_ADDRESS, ROUTER_ABI, wallet);
+                
+                document.getElementById('status').innerText = "Bağlı: " + wallet.address.substring(0,6) + "...";
+                document.getElementById('status').className = "px-3 py-1 rounded-full text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/50";
+                document.getElementById('tradePanel').style.opacity = "1";
+                document.getElementById('tradePanel').style.pointerEvents = "auto";
+                log("Cüzdan başarıyla bağlandı.", "success");
+            } catch (e) {
+                log("Hata: " + e.message, "error");
+            }
+        }
+
+        async function updateTokenInfo() {
+            const addr = document.getElementById('tokenAddress').value;
+            if(!ethers.utils.isAddress(addr)) return;
+
+            try {
+                const token = new ethers.Contract(addr, ERC20_ABI, provider);
+                const name = await token.name();
+                const symbol = await token.symbol();
+                document.getElementById('tokenInfo').innerText = `Token: ${name} (${symbol})`;
+                log(`Token algılandı: ${symbol}`);
+            } catch (e) {
+                document.getElementById('tokenInfo').innerText = "Token bilgisi alınamadı!";
+            }
+        }
+
+        async function executeTrade(mode) {
+            const tokenAddr = document.getElementById('tokenAddress').value;
+            const slippage = document.getElementById('slippage').value / 100;
+            const deadline = Math.floor(Date.now() / 1000) + 60 * 10;
+
+            if(!ethers.utils.isAddress(tokenAddr)) return log("Geçersiz token adresi!", "error");
+
+            try {
+                if(mode === 'BUY') {
+                    const amountIn = ethers.utils.parseEther(document.getElementById('buyAmount').value);
+                    const path = [WETH, tokenAddr];
+                    
+                    log("Fiyat alınıyor...");
+                    const amounts = await router.getAmountsOut(amountIn, path);
+                    const amountOutMin = amounts[1].sub(amounts[1].mul(Math.floor(slippage * 100)).div(100));
+
+                    log("Alım işlemi gönderiliyor...");
+                    const tx = await router.swapExactETHForTokens(
+                        amountOutMin,
+                        path,
+                        wallet.address,
+                        deadline,
+                        { value: amountIn, gasLimit: 250000 }
+                    );
+                    log(`TX Gönderildi: ${tx.hash}`, "info");
+                    await tx.wait();
+                    log("Alım Başarılı!", "success");
+
+                } else {
+                    const token = new ethers.Contract(tokenAddr, ERC20_ABI, wallet);
+                    const balance = await token.balanceOf(wallet.address);
+                    
+                    if(balance.isZero()) return log("Bakiyeniz yetersiz!", "error");
+
+                    log("Onay (Approve) veriliyor...");
+                    const appTx = await token.approve(ROUTER_ADDRESS, balance);
+                    await appTx.wait();
+
+                    const path = [tokenAddr, WETH];
+                    const amounts = await router.getAmountsOut(balance, path);
+                    const amountOutMin = amounts[1].sub(amounts[1].mul(Math.floor(slippage * 100)).div(100));
+
+                    log("Satış işlemi gönderiliyor...");
+                    const tx = await router.swapExactTokensForETH(
+                        balance,
+                        amountOutMin,
+                        path,
+                        wallet.address,
+                        deadline,
+                        { gasLimit: 250000 }
+                    );
+                    log(`TX Gönderildi: ${tx.hash}`, "info");
+                    await tx.wait();
+                    log("Satış Başarılı!", "success");
+                }
+            } catch (e) {
+                log("İşlem Hatası: " + (e.reason || e.message), "error");
+            }
+        }
+    </script>
+</body>
+</html>
+
