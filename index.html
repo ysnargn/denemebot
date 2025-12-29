@@ -3,219 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gem Hunter Pro Terminal</title>
+    <title>Pro Gem Hunter Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
-        body { background-color: #050505; color: #e2e8f0; font-family: 'JetBrains+Mono', monospace; }
-        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
-        .neon-border { border: 1px solid rgba(34, 211, 238, 0.3); box-shadow: 0 0 15px rgba(34, 211, 238, 0.1); }
-        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        body { background-color: #020617; color: #f1f5f9; font-family: 'JetBrains+Mono', monospace; }
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .neon-text { text-shadow: 0 0 10px rgba(34, 211, 238, 0.5); }
+        input { background: #000 !important; border: 1px solid #1e293b !important; }
+        input:focus { border-color: #06b6d4 !important; outline: none; box-shadow: 0 0 10px rgba(6, 182, 212, 0.2); }
     </style>
 </head>
 <body class="min-h-screen p-4 flex flex-col items-center">
-    <div class="w-full max-w-lg">
-        <!-- Network Switcher -->
-        <div class="flex gap-2 mb-4 bg-white/5 p-1 rounded-2xl">
-            <button onclick="switchNetwork('eth')" id="btn-eth" class="flex-1 py-2 rounded-xl text-xs font-bold transition-all border border-transparent">ETH</button>
-            <button onclick="switchNetwork('bsc')" id="btn-bsc" class="flex-1 py-2 rounded-xl text-xs font-bold transition-all border border-transparent">BSC</button>
-            <button onclick="switchNetwork('base')" id="btn-base" class="flex-1 py-2 rounded-xl text-xs font-bold transition-all border border-transparent">BASE</button>
+    <div class="w-full max-w-lg space-y-4">
+        
+        <!-- Network Bar -->
+        <div class="flex gap-2 p-1 bg-black/40 rounded-2xl border border-white/5">
+            <button onclick="switchNetwork('eth')" id="btn-eth" class="flex-1 py-2 rounded-xl text-[10px] font-bold transition-all">ETHEREUM</button>
+            <button onclick="switchNetwork('bsc')" id="btn-bsc" class="flex-1 py-2 rounded-xl text-[10px] font-bold transition-all">BSC</button>
+            <button onclick="switchNetwork('base')" id="btn-base" class="flex-1 py-2 rounded-xl text-[10px] font-bold transition-all">BASE</button>
         </div>
 
-        <!-- Wallet Card -->
-        <div class="glass rounded-3xl p-6 mb-4 neon-border">
-            <div class="flex justify-between items-start mb-4">
+        <!-- Wallet Interface -->
+        <div class="glass rounded-3xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
                 <div>
-                    <p class="text-[10px] text-slate-500 uppercase tracking-widest">Cüzdan Bakiyesi</p>
-                    <h2 class="text-3xl font-bold"><span id="native-balance">0.00</span> <span class="text-cyan-500 sym-display text-xl">ETH</span></h2>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-tighter">Cüzdan Bakiyesi</p>
+                    <div class="flex items-baseline gap-2">
+                        <span id="native-balance" class="text-4xl font-bold neon-text">0.00</span>
+                        <span id="native-symbol" class="text-cyan-500 font-bold">ETH</span>
+                    </div>
                 </div>
-                <div id="status-indicator" class="w-2 h-2 rounded-full bg-red-500"></div>
-            </div>
-            
-            <input type="password" id="privateKey" placeholder="Özel Anahtar (0x...)" class="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm mb-3 focus:border-cyan-500 outline-none">
-            <button onclick="connectWallet()" id="connectBtn" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-xl transition-all">CÜZDANI BAĞLA</button>
-        </div>
-
-        <!-- Trading Interface -->
-        <div id="tradePanel" class="glass rounded-3xl p-6 opacity-30 pointer-events-none transition-all">
-            <div class="mb-6">
-                <label class="text-[10px] text-slate-500 uppercase block mb-2">Token Kontrat Adresi</label>
-                <input type="text" id="tokenAddress" oninput="onTokenAddressChange()" placeholder="0x..." class="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-emerald-500 outline-none">
+                <div id="status-led" class="w-3 h-3 rounded-full bg-rose-600 animate-pulse"></div>
             </div>
 
-            <!-- Interaction Area -->
-            <div class="space-y-4">
-                <!-- Buy Box -->
-                <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
-                    <div class="flex justify-between text-[10px] mb-2">
-                        <span class="text-slate-400">ALIM MİKTARI</span>
-                        <span class="text-cyan-400">Tahmini Alınacak: <span id="est-buy-tokens">0</span> <span class="token-sym">TOK</span></span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <input type="number" id="buyAmount" value="0.01" oninput="calculateEstimate('BUY')" class="bg-transparent text-xl font-bold w-full outline-none">
-                        <span class="sym-display font-bold text-slate-500">ETH</span>
-                    </div>
-                </div>
-
-                <!-- Sell Box -->
-                <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
-                    <div class="flex justify-between text-[10px] mb-2">
-                        <span class="text-slate-400">SATIŞ MİKTARI</span>
-                        <span class="text-emerald-400">Alınacak: <span id="est-sell-native">0</span> <span class="sym-display">ETH</span></span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <input type="number" id="sellAmount" placeholder="0.0" oninput="calculateEstimate('SELL')" class="bg-transparent text-xl font-bold w-full outline-none">
-                        <button onclick="setMaxSell()" class="text-[10px] bg-white/10 px-2 py-1 rounded hover:bg-white/20">MAX</button>
-                        <span class="token-sym font-bold text-slate-500">TOKEN</span>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3 mt-4">
-                    <button onclick="executeAction('BUY')" class="bg-emerald-500 hover:bg-emerald-400 py-4 rounded-2xl font-bold text-black transition-all">ALIM YAP</button>
-                    <button onclick="executeAction('SELL')" class="bg-rose-500 hover:bg-rose-400 py-4 rounded-2xl font-bold text-black transition-all">SATIŞ YAP</button>
-                </div>
+            <div class="space-y-3">
+                <input type="password" id="privateKey" placeholder="Private Key (0x...)" class="w-full px-4 py-3 rounded-xl text-sm transition-all">
+                <button onclick="connectWallet()" class="w-full bg-white text-black font-black py-3 rounded-xl hover:bg-cyan-400 transition-all uppercase tracking-widest text-xs">Cüzdanı Bağla</button>
             </div>
         </div>
 
-        <!-- Terminal Output -->
-        <div class="mt-4 bg-black border border-white/5 rounded-2xl p-4 h-40 overflow-y-auto text-[10px] font-mono" id="terminal">
-            <div class="text-slate-500">> Terminal hazır. İşlem bekleniyor...</div>
+        <!-- Trading Terminal -->
+        <div id="tradePanel" class="glass rounded-3xl p-6 opacity-30 pointer-events-none scale-[0.98] transition-all duration-500">
+            <div class="space-y-5">
+                <!-- Token Input -->
+                <div>
+                    <label class="text-[10px] text-slate-500 font-bold mb-2 block">TOKEN KONTRAT ADRESİ</label>
+                    <input type="text" id="tokenAddress" oninput="onTokenChange()" placeholder="0x..." class="w-full px-4 py-3 rounded-xl text-sm text-cyan-400">
+                    <div id="tokenDetails" class="mt-2 text-[10px] text-slate-400 italic flex justify-between">
+                        <span id="tokenName">Bekleniyor...</span>
+                        <span id="tokenBalance">Bakiye: 0.00</span>
+                    </div>
+                </div>
+
+                <!-- Settings Row -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[10px] text-slate-500 font-bold mb-2 block">ALIM MİKTARI (<span class="sym-display">ETH</span>)</label>
+                        <input type="number" id="buyAmount" value="0.01" step="0.001" oninput="calcEstimate('BUY')" class="w-full px-4 py-3 rounded-xl text-sm font-bold">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-500 font-bold mb-2 block">SLIPPAGE (%)</label>
+                        <input type="number" id="slippage" value="15" class="w-full px-4 py-3 rounded-xl text-sm font-bold text-rose-400">
+                    </div>
+                </div>
+
+                <!-- Execution Info -->
+                <div class="bg-black/60 p-4 rounded-2xl border border-white/5 space-y-2">
+                    <div class="flex justify-between text-[10px]">
+                        <span class="text-slate-500">Tahmini Alınacak:</span>
+                        <span class="text-emerald-400 font-bold"><span id="est-tokens">0.00</span> <span class="token-sym">TOKEN</span></span>
+                    </div>
+                    <div class="flex justify-between text-[10px]">
+                        <span class="text-slate-500">Tahmini Geri Dönüş:</span>
+                        <span class="text-cyan-400 font-bold"><span id="est-native">0.00</span> <span class="sym-display">ETH</span></span>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="trade('BUY')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl shadow-lg shadow-emerald-900/20 transition-all">ALIM</button>
+                    <button onclick="trade('SELL')" class="bg-rose-600 hover:bg-rose-500 text-white font-black py-4 rounded-2xl shadow-lg shadow-rose-900/20 transition-all">SATIŞ</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Terminal Logs -->
+        <div class="bg-black rounded-2xl border border-white/5 p-4">
+            <div id="terminal" class="h-32 overflow-y-auto font-mono text-[9px] space-y-1">
+                <div class="text-slate-600">> Terminal hazır. Bağlantı bekleniyor...</div>
+            </div>
         </div>
     </div>
 
     <script>
-        const CONFIG = {
+        const NETWORKS = {
             eth: { rpc: 'https://eth.llamarpc.com', router: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D', weth: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', sym: 'ETH' },
             bsc: { rpc: 'https://binance.llamarpc.com', router: '0x10ED43C718714eb63d5aA57B78B54704E256024E', weth: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', sym: 'BNB' },
             base: { rpc: 'https://base.llamarpc.com', router: '0x4752ba5DBc23f44D82143D093042C17693184712', weth: '0x4200000000000000000000000000000000000006', sym: 'ETH' }
         };
 
         let currentId = 'eth';
-        let wallet, provider, router, currentToken;
+        let wallet, provider, router, tokenContract;
         let tokenDecimals = 18;
 
-        const ABI = {
-            router: ["function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts)", "function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)", "function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)"],
-            erc20: ["function name() view returns (string)", "function symbol() view returns (string)", "function decimals() view returns (uint8)", "function balanceOf(address) view returns (uint256)", "function approve(address, uint256) returns (bool)"]
-        };
-
-        function writeTerminal(msg, color = 'text-slate-400') {
+        function log(msg, type = 'info') {
             const t = document.getElementById('terminal');
-            const d = document.createElement('div');
-            d.className = color;
-            d.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            t.prepend(d);
+            const div = document.createElement('div');
+            div.className = type === 'error' ? 'text-rose-500' : type === 'success' ? 'text-emerald-400' : 'text-slate-400';
+            div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            t.prepend(div);
         }
 
         function switchNetwork(id) {
             currentId = id;
-            document.querySelectorAll('[id^="btn-"]').forEach(b => b.className = "flex-1 py-2 rounded-xl text-xs font-bold transition-all border border-transparent bg-white/5");
-            document.getElementById(`btn-${id}`).className = "flex-1 py-2 rounded-xl text-xs font-bold transition-all border border-cyan-500/50 bg-cyan-500/10";
-            document.querySelectorAll('.sym-display').forEach(el => el.innerText = CONFIG[id].sym);
-            writeTerminal(`${CONFIG[id].sym} ağı seçildi.`);
+            document.querySelectorAll('[id^="btn-"]').forEach(b => b.className = "flex-1 py-2 rounded-xl text-[10px] font-bold bg-white/5 text-slate-500");
+            document.getElementById(`btn-${id}`).className = "flex-1 py-2 rounded-xl text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/50";
+            document.getElementById('native-symbol').innerText = NETWORKS[id].sym;
+            document.querySelectorAll('.sym-display').forEach(el => el.innerText = NETWORKS[id].sym);
+            log(`${NETWORKS[id].sym} ağı seçildi.`);
             if(wallet) connectWallet();
         }
 
         async function connectWallet() {
             const key = document.getElementById('privateKey').value;
-            if(!key) return;
+            if(!key) return log("Private Key girilmedi!", "error");
             try {
-                provider = new ethers.providers.JsonRpcProvider(CONFIG[currentId].rpc);
+                provider = new ethers.providers.JsonRpcProvider(NETWORKS[currentId].rpc);
                 wallet = new ethers.Wallet(key, provider);
-                router = new ethers.Contract(CONFIG[currentId].router, ABI.router, wallet);
-                const b = await provider.getBalance(wallet.address);
-                document.getElementById('native-balance').innerText = parseFloat(ethers.utils.formatEther(b)).toFixed(4);
-                document.getElementById('status-indicator').className = "w-2 h-2 rounded-full bg-emerald-500";
-                document.getElementById('tradePanel').style.opacity = "1";
-                document.getElementById('tradePanel').style.pointerEvents = "auto";
-                writeTerminal("Cüzdan bağlandı: " + wallet.address.slice(0,6) + "...");
-            } catch (e) { writeTerminal("Cüzdan hatası!", "text-rose-500"); }
+                router = new ethers.Contract(NETWORKS[currentId].router, [
+                    "function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts)",
+                    "function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)",
+                    "function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)"
+                ], wallet);
+                
+                const bal = await provider.getBalance(wallet.address);
+                document.getElementById('native-balance').innerText = parseFloat(ethers.utils.formatEther(bal)).toFixed(4);
+                document.getElementById('status-led').className = "w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]";
+                document.getElementById('tradePanel').classList.remove('opacity-30', 'pointer-events-none', 'scale-[0.98]');
+                log("Cüzdan bağlandı.");
+                if(document.getElementById('tokenAddress').value) onTokenChange();
+            } catch (e) { log("Bağlantı hatası: " + e.message, "error"); }
         }
 
-        async function onTokenAddressChange() {
+        async function onTokenChange() {
             const addr = document.getElementById('tokenAddress').value;
-            if(!ethers.utils.isAddress(addr)) return;
+            if(!ethers.utils.isAddress(addr) || !wallet) return;
             try {
-                currentToken = new ethers.Contract(addr, ABI.erc20, wallet);
-                const [sym, dec] = await Promise.all([currentToken.symbol(), currentToken.decimals()]);
+                tokenContract = new ethers.Contract(addr, [
+                    "function symbol() view returns (string)",
+                    "function decimals() view returns (uint8)",
+                    "function balanceOf(address) view returns (uint256)",
+                    "function approve(address, uint256) returns (bool)"
+                ], wallet);
+                
+                const [sym, dec, bal] = await Promise.all([
+                    tokenContract.symbol(),
+                    tokenContract.decimals(),
+                    tokenContract.balanceOf(wallet.address)
+                ]);
+                
                 tokenDecimals = dec;
+                document.getElementById('tokenName').innerText = "Token: " + sym;
                 document.querySelectorAll('.token-sym').forEach(el => el.innerText = sym);
-                writeTerminal(`Token aktif: ${sym}`);
-                calculateEstimate('BUY');
-            } catch (e) { writeTerminal("Token bulunamadı!", "text-rose-500"); }
+                document.getElementById('tokenBalance').innerText = "Bakiye: " + parseFloat(ethers.utils.formatUnits(bal, dec)).toFixed(2);
+                calcEstimate('BUY');
+                log(`${sym} verileri yüklendi.`);
+            } catch (e) { document.getElementById('tokenName').innerText = "Hatalı Kontrat!"; }
         }
 
-        async function calculateEstimate(mode) {
+        async function calcEstimate(mode) {
             const addr = document.getElementById('tokenAddress').value;
             if(!ethers.utils.isAddress(addr) || !router) return;
-
             try {
-                if(mode === 'BUY') {
-                    const val = document.getElementById('buyAmount').value;
-                    if(!val || val <= 0) return;
-                    const amountIn = ethers.utils.parseEther(val);
-                    const path = [CONFIG[currentId].weth, addr];
+                const path = mode === 'BUY' ? [NETWORKS[currentId].weth, addr] : [addr, NETWORKS[currentId].weth];
+                const amountIn = mode === 'BUY' ? ethers.utils.parseEther(document.getElementById('buyAmount').value || "0") : await tokenContract.balanceOf(wallet.address);
+                
+                if(amountIn.gt(0)) {
                     const amounts = await router.getAmountsOut(amountIn, path);
-                    document.getElementById('est-buy-tokens').innerText = ethers.utils.formatUnits(amounts[1], tokenDecimals);
-                } else {
-                    const val = document.getElementById('sellAmount').value;
-                    if(!val || val <= 0) return;
-                    const amountIn = ethers.utils.parseUnits(val, tokenDecimals);
-                    const path = [addr, CONFIG[currentId].weth];
-                    const amounts = await router.getAmountsOut(amountIn, path);
-                    document.getElementById('est-sell-native').innerText = ethers.utils.formatEther(amounts[1]);
+                    if(mode === 'BUY') document.getElementById('est-tokens').innerText = parseFloat(ethers.utils.formatUnits(amounts[1], tokenDecimals)).toFixed(4);
+                    else document.getElementById('est-native').innerText = parseFloat(ethers.utils.formatEther(amounts[1])).toFixed(4);
                 }
-            } catch (e) { console.log(e); }
+            } catch (e) { console.error(e); }
         }
 
-        async function setMaxSell() {
-            if(!currentToken) return;
-            const b = await currentToken.balanceOf(wallet.address);
-            document.getElementById('sellAmount').value = ethers.utils.formatUnits(b, tokenDecimals);
-            calculateEstimate('SELL');
-        }
-
-        async function executeAction(mode) {
+        async function trade(mode) {
             const addr = document.getElementById('tokenAddress').value;
+            const slip = document.getElementById('slippage').value;
             const deadline = Math.floor(Date.now() / 1000) + 600;
 
             try {
-                if(mode === 'BUY') {
-                    const val = document.getElementById('buyAmount').value;
-                    const amountIn = ethers.utils.parseEther(val);
-                    const path = [CONFIG[currentId].weth, addr];
-                    const amounts = await router.getAmountsOut(amountIn, path);
-                    const minOut = amounts[1].mul(90).div(100); // %10 slippage default
+                const path = mode === 'BUY' ? [NETWORKS[currentId].weth, addr] : [addr, NETWORKS[currentId].weth];
+                const amountIn = mode === 'BUY' ? ethers.utils.parseEther(document.getElementById('buyAmount').value) : await tokenContract.balanceOf(wallet.address);
+                
+                const amounts = await router.getAmountsOut(amountIn, path);
+                const minOut = amounts[1].mul(100 - slip).div(100);
 
-                    writeTerminal("Alım emri gönderiliyor...");
-                    const tx = await router.swapExactETHForTokens(minOut, path, wallet.address, deadline, { value: amountIn, gasLimit: 300000 });
-                    writeTerminal("TX: " + tx.hash.slice(0,15) + "...");
-                    await tx.wait();
-                    writeTerminal("ALIM TAMAMLANDI!", "text-emerald-400");
-                } else {
-                    const val = document.getElementById('sellAmount').value;
-                    const amountIn = ethers.utils.parseUnits(val, tokenDecimals);
-                    
-                    writeTerminal("Token onayı (Approve) veriliyor...");
-                    const appTx = await currentToken.approve(CONFIG[currentId].router, amountIn);
+                if(mode === 'SELL') {
+                    log("Satış onayı (Approve) veriliyor...");
+                    const appTx = await tokenContract.approve(NETWORKS[currentId].router, amountIn);
                     await appTx.wait();
-
-                    const path = [addr, CONFIG[currentId].weth];
-                    const amounts = await router.getAmountsOut(amountIn, path);
-                    const minOut = amounts[1].mul(90).div(100);
-
-                    writeTerminal("Satış emri gönderiliyor...");
-                    const tx = await router.swapExactTokensForETH(amountIn, minOut, path, wallet.address, deadline, { gasLimit: 300000 });
-                    writeTerminal("TX: " + tx.hash.slice(0,15) + "...");
-                    await tx.wait();
-                    writeTerminal("SATIŞ TAMAMLANDI!", "text-emerald-400");
                 }
-                connectWallet();
-            } catch (e) { writeTerminal("Hata: " + (e.reason || "İşlem başarısız"), "text-rose-500"); }
+
+                log(`${mode} işlemi başlatıldı...`);
+                const gasPrice = await provider.getGasPrice();
+                const txParams = { gasLimit: 300000, gasPrice: gasPrice.mul(12).div(10) }; // %20 daha hızlı gaz
+
+                let tx;
+                if(mode === 'BUY') {
+                    tx = await router.swapExactETHForTokens(minOut, path, wallet.address, deadline, { ...txParams, value: amountIn });
+                } else {
+                    tx = await router.swapExactTokensForETH(amountIn, minOut, path, wallet.address, deadline, txParams);
+                }
+
+                log(`TX Gönderildi: ${tx.hash.slice(0,10)}...`);
+                await tx.wait();
+                log(`${mode} BAŞARILI!`, "success");
+                connectWallet(); // Yenile
+            } catch (e) {
+                log("Hata: " + (e.reason || "Slippage çok düşük veya bakiye yetersiz!"), "error");
+            }
         }
 
-        // Init
         switchNetwork('eth');
     </script>
 </body>
